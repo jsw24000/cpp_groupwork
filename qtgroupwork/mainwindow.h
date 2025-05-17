@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include "addpostdialog.h"
+#include "postwidget.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -16,6 +18,11 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+private slots:
+
+    void on_addPostButton_clicked();
+    void addPost(const QString &content);
 
 private:
     Ui::MainWindow *ui;
