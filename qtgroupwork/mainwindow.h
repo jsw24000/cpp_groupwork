@@ -22,9 +22,13 @@ public:
 private slots:
 
     void on_addPostButton_clicked();
-    void addPost(const QString &content);
+    void addPost(const QString &content); //把帖子显示在滚动区域
 
 private:
     Ui::MainWindow *ui;
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
 };
 #endif // MAINWINDOW_H
