@@ -5,6 +5,10 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
+namespace Ui {
+class PostWidget;
+}
+
 class PostWidget : public QWidget
 {
     Q_OBJECT
@@ -13,7 +17,8 @@ public:
     ~PostWidget();
 
 private:
-    QLabel *contentLabel;
+    // QLabel *contentLabel;
+    Ui::PostWidget *ui;
 };
 
 #endif // POSTWIDGET_H

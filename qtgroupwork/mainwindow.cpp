@@ -2,6 +2,9 @@
 #include "ui_mainwindow.h"
 
 #include <QCloseEvent>
+#include <QDir>
+#include <QFile>
+#include <QTextStream>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -13,6 +16,18 @@ MainWindow::MainWindow(QWidget *parent)
     layout->setAlignment(Qt::AlignTop);
     layout->setSpacing(5);
     ui->scrollAreaWidgetContents->setLayout(layout);
+
+    // 自动初始化显示src/posts/里的所有txt文件的内容
+    QDir postsDir("src/posts");
+    QStringList filters;
+    filters << "*.txt";
+    QStringList txtFiles = postsDir.entryList(filters, QDir::Files);
+
+    for (const QString &fileName : txtFiles) {
+        QString filePath = postsDir.absoluteFilePath(fileName);
+        QString content = AddPostDialog::getText(filePath);
+        addPost(content);
+    }
 }
 
 MainWindow::~MainWindow()
@@ -27,7 +42,7 @@ void MainWindow::on_addPostButton_clicked() //如果点击添加按钮
         dialog.saveTextToFile(dialog.getInputText()); //保存
         QString content = "空空如也";
         QString fileName = "post_" + QString::number(AddPostDialog::totalPostNumber - 1) + ".txt";
-        QString filePath = "C:/Users/Lenovo/Desktop/cpp_groupwork/qtgroupwork/src/posts/" + fileName;
+        QString filePath = "src/posts/" + fileName;
         content=AddPostDialog::getText(filePath);
         addPost(content);
     }

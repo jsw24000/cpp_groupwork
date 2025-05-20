@@ -21,7 +21,8 @@ HEADERS += \
 
 FORMS += \
     addpostdialog.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    postwidget.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
