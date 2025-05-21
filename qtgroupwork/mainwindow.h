@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include "addpostdialog.h"
 #include "postwidget.h"
+#include "login.h"
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui {

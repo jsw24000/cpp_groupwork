@@ -1,4 +1,5 @@
 QT       += core gui
+QT += core gui sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -10,19 +11,24 @@ CONFIG += c++17
 
 SOURCES += \
     addpostdialog.cpp \
+    login.cpp \
     main.cpp \
     mainwindow.cpp \
-    postwidget.cpp
+    postwidget.cpp \
+    signup.cpp
 
 HEADERS += \
     addpostdialog.h \
+    login.h \
     mainwindow.h \
-    postwidget.h
+    postwidget.h \
+    signup.h
 
 FORMS += \
     addpostdialog.ui \
+    login.ui \
     mainwindow.ui \
-    postwidget.ui
+    signup.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

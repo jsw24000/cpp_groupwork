@@ -72,7 +72,7 @@ void AddPostDialog::saveTextToFile(const QString& text)
     }
 
     QString fileName = "post_" + QString::number(totalPostNumber) + ".txt";
-    QString filePath = "src/posts/" + fileName;
+    QString filePath = "C:/Users/69156/Desktop/cpp_groupwork/main/qtgroupwork/src/posts/" + fileName;
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&file);
