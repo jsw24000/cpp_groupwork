@@ -15,6 +15,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     postwidget.cpp \
+    selfcenterwindow.cpp \
     signup.cpp
 
 HEADERS += \
@@ -22,12 +23,14 @@ HEADERS += \
     login.h \
     mainwindow.h \
     postwidget.h \
+    selfcenterwindow.h \
     signup.h
 
 FORMS += \
     addpostdialog.ui \
     login.ui \
     mainwindow.ui \
+    selfcenterwindow.ui \
     signup.ui
 
 # Default rules for deployment.
