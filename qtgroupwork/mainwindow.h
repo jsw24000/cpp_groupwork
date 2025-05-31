@@ -1,9 +1,14 @@
+// mainwindow.h
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
 #include <QMainWindow>
 #include "addpostdialog.h"
 #include "postwidget.h"
+#include "client.h"
+#include <QList>
+#include "post.h"
+#include <QAbstractSocket>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,15 +25,19 @@ public:
     ~MainWindow();
 
 private slots:
-
     void on_addPostButton_clicked();
-    void addPost(const QString &content); //把帖子显示在滚动区域
+    void addPost(const QString &content, const QString &fileName);
+    void handlePostsReceived(const QList<Post>& posts);
+    void handleDataReceived(const QByteArray& data);
+    void handleSocketError(QAbstractSocket::SocketError error);
 
 private:
     Ui::MainWindow *ui;
+    Client client;
 
-protected:
+    void loadAllPosts();
+    void handleConnectionError();
     void closeEvent(QCloseEvent *event) override;
-
 };
-#endif // MAINWINDOW_H
+
+#endif
