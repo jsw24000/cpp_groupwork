@@ -1,5 +1,7 @@
 #include "addpostdialog.h"
 #include "ui_addpostdialog.h"
+#include "client.h"
+
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
@@ -59,32 +61,32 @@ QString AddPostDialog::getInputText() const //获取刚输入的文本
     return ui->inputText->toPlainText();
 }
 
-void AddPostDialog::saveTextToFile(const QString& text)
-{
-    qDebug() << "Current working directory: " << QDir::currentPath();
-    // 检查并创建目录
-    QDir dir("src/posts");
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
-            QMessageBox::critical(this, "发布失败", "无法创建目录，请检查权限！");
-            return;
-        }
-    }
+// void AddPostDialog::saveTextToFile(const QString& text)
+// {
+//     qDebug() << "Current working directory: " << QDir::currentPath();
+//     // 检查并创建目录
+//     QDir dir("src/posts");
+//     if (!dir.exists()) {
+//         if (!dir.mkpath(".")) {
+//             QMessageBox::critical(this, "发布失败", "无法创建目录，请检查权限！");
+//             return;
+//         }
+//     }
 
-    QString fileName = "post_" + QString::number(totalPostNumber) + ".txt";
-    QString filePath = "C:/Users/69156/Desktop/cpp_groupwork/main/qtgroupwork/src/posts/" + fileName;
-    QFile file(filePath);
-    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&file);
-        out << text;
-        file.close();
-        totalPostNumber++;
-        AddPostDialog::saveTotalPostNumber(); // 立即保存更新后的值
-        QMessageBox::information(this, "发布成功", "文本已成功发布了！");
-    } else {
-        QMessageBox::critical(this, "发布失败", "糟糕！请再试试看");
-    }
-}
+//     QString fileName = "post_" + QString::number(totalPostNumber) + ".txt";
+//     QString filePath = "C:/Users/69156/Desktop/cpp_groupwork/main/qtgroupwork/src/posts/" + fileName;
+//     QFile file(filePath);
+//     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+//         QTextStream out(&file);
+//         out << text;
+//         file.close();
+//         totalPostNumber++;
+//         AddPostDialog::saveTotalPostNumber(); // 立即保存更新后的值
+//         QMessageBox::information(this, "发布成功", "文本已成功发布了！");
+//     } else {
+//         QMessageBox::critical(this, "发布失败", "糟糕！请再试试看");
+//     }
+// }
 
 QString AddPostDialog::getText(const QString& filePath){ //返回任意指定路径的文本
     QFile file(filePath);

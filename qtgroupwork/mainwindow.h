@@ -5,6 +5,10 @@
 #include "addpostdialog.h"
 #include "postwidget.h"
 #include "login.h"
+#include "client.h"
+#include <QList>
+#include "post.h"
+#include <QAbstractSocket>
 
 
 QT_BEGIN_NAMESPACE
@@ -24,7 +28,10 @@ public:
 private slots:
 
     void on_addPostButton_clicked();
-    void addPost(const QString &content); //把帖子显示在滚动区域
+    void addPost(const QString &content, const QString &fileName);
+    void handlePostsReceived(const QList<Post>& posts);
+    void handleDataReceived(const QByteArray& data);
+    void handleSocketError(QAbstractSocket::SocketError error);
 
     void on_selfcenterButton_clicked();
 
@@ -34,10 +41,13 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    Client client;
     QMap<QString, QLabel*> originalWidgets;       // 存储原始Label指针（field名→Label）
     QMap<QString, QSizePolicy> originalSizePolicies; // 存储原始尺寸策略
     QMap<QString, QSize> originalSizeHints;        // 存储原始大小提示
-protected:
+
+    void loadAllPosts();
+    void handleConnectionError();
     void closeEvent(QCloseEvent *event) override;
 
 };
