@@ -1,10 +1,13 @@
 #include "postwidget.h"
 #include "ui_postwidget.h"
+#include "comment.h"
+#include "reply.h"
 
 const int FIXED_HEIGHT = 100;
-PostWidget::PostWidget(const QString &content, QWidget *parent)
+PostWidget::PostWidget(const QString &content, const QString fileName, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::PostWidget)
+    , my_filename(fileName)
 {
     ui->setupUi(this);
     // contentLabel = new QLabel(content, this);
@@ -25,3 +28,11 @@ PostWidget::~PostWidget()
 {
     delete ui;
 }
+
+void PostWidget::on_commentButton_clicked()
+{
+    Comment *comment = new Comment(my_filename);
+    comment->show();
+    comment->loadReplies();
+}
+

@@ -1,4 +1,6 @@
-QT       += core gui
+# QT       += core gui
+QT += core gui sql
+QT += network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -10,19 +12,38 @@ CONFIG += c++17
 
 SOURCES += \
     addpostdialog.cpp \
+    login.cpp \
     main.cpp \
     mainwindow.cpp \
-    postwidget.cpp
+    postwidget.cpp \
+    selfcenterwindow.cpp \
+    signup.cpp \
+    client.cpp \
+    comment.cpp \
+    post.cpp \
+    reply.cpp
 
 HEADERS += \
     addpostdialog.h \
+    login.h \
     mainwindow.h \
-    postwidget.h
+    postwidget.h \
+    selfcenterwindow.h \
+    signup.h \
+    client.h \
+    comment.h \
+    post.h \
+    reply.h
 
 FORMS += \
     addpostdialog.ui \
+    login.ui \
     mainwindow.ui \
-    postwidget.ui
+    postwidget.ui \
+    selfcenterwindow.ui \
+    signup.ui \
+    comment.ui \
+    reply.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
