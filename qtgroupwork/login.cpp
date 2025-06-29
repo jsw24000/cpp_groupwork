@@ -8,6 +8,7 @@ Login::Login(QWidget *parent)
     , ui(new Ui::Login)
 {
     ui->setupUi(this);
+    setWindowTitle("登录");
 }
 
 Login::~Login()

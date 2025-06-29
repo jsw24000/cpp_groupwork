@@ -27,11 +27,17 @@
      <widget class="QPushButton" name="addPostButton">
       <property name="geometry">
        <rect>
-        <x>600</x>
+        <x>700</x>
         <y>20</y>
-        <width>131</width>
+        <width>35</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>35</width>
+        <height>35</height>
+       </size>
       </property>
       <property name="text">
        <string>add a new blog</string>
@@ -65,11 +71,17 @@
      <widget class="QPushButton" name="infoEditButton">
       <property name="geometry">
        <rect>
-        <x>640</x>
+        <x>700</x>
         <y>20</y>
-        <width>81</width>
+        <width>35</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>35</width>
+        <height>35</height>
+       </size>
       </property>
       <property name="text">
        <string>更改信息</string>
@@ -228,7 +240,7 @@
      <x>0</x>
      <y>0</y>
      <width>790</width>
-     <height>22</height>
+     <height>18</height>
     </rect>
    </property>
   </widget>
