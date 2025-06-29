@@ -8,6 +8,8 @@
 #include <QCloseEvent>
 
 #include <QMap>
+#include <QIcon>
+#include <QString>
 #include <QStringList>
 #include <QSizePolicy>
 #include <QSize>
@@ -19,7 +21,17 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    ui->addPostButton->setFixedSize(50, 50);
+
+    setIcon(35, ui->addPostButton, ":/icon/addpost.png");
+    setIcon(50, ui->menuButton, ":/icon/menu.png");
+    setIcon(50, ui->selfcenterButton, ":/icon/selfcenter.png");
+    setIcon(35, ui->infoEditButton, ":/icon/editinfo.png");
+
+
     // 设置滚动区域的布局
+    setWindowTitle("北大树坑");
     QVBoxLayout *layout = new QVBoxLayout(ui->scrollAreaWidgetContents);
     layout->setAlignment(Qt::AlignTop);
     layout->setSpacing(5);
@@ -43,6 +55,20 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::setIcon(int a, QPushButton* button, const QString& filename){
+    button->setText("");
+    button->setFixedSize(a, a);
+    button->setIcon(QIcon(filename));
+    button->setIconSize(QSize(button->width(), button->height()));
+    button->setStyleSheet(R"(
+        QPushButton {
+            background-color: transparent; /* 透明背景 */
+            border: none; /* 去除边框 */
+            padding: 0px; /* 去除内边距，让图标贴合按钮边缘 */
+        })"
+    );
 }
 
 void MainWindow::on_addPostButton_clicked()
@@ -176,7 +202,7 @@ void MainWindow::on_infoEditButton_clicked()
     isEditable = !isEditable;
     const QStringList fields = {"username", "password", "number", "school", "phone"};
     QPushButton* infoEdit = findChild<QPushButton*>("infoEditButton");
-    if (infoEdit) infoEdit->setText(isEditable ? "提交修改" : "更改信息"); // 让按钮根据状态改变text信息
+    if (infoEdit) setIcon(35, infoEdit, isEditable ? ":/icon/submit.png" : ":/icon/editinfo.png"); // 让按钮根据状态改变text信息
 
 
     for (const QString& field : fields) {

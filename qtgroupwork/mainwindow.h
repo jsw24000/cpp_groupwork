@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QString>
 #include "addpostdialog.h"
 #include "postwidget.h"
 #include "login.h"
@@ -42,6 +43,7 @@ private slots:
 private:
     Ui::MainWindow *ui;
     Client client;
+    void setIcon(int a, QPushButton* button, const QString& filename); // 为按钮设置图标
     QMap<QString, QLabel*> originalWidgets;       // 存储原始Label指针（field名→Label）
     QMap<QString, QSizePolicy> originalSizePolicies; // 存储原始尺寸策略
     QMap<QString, QSize> originalSizeHints;        // 存储原始大小提示
