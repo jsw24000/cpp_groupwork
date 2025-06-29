@@ -9,6 +9,8 @@ Login::Login(QWidget *parent)
 {
     ui->setupUi(this);
     setWindowTitle("登录");
+
+    connect(ui->passwordLineEdit, &QLineEdit::returnPressed, this, &Login::on_commitButton_clicked);
 }
 
 Login::~Login()

@@ -25,10 +25,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->addPostButton->setFixedSize(50, 50);
 
     setIcon(35, ui->addPostButton, ":/icon/addpost.png");
+    ui->addPostButton->setCursor(Qt::PointingHandCursor);
     setIcon(50, ui->menuButton, ":/icon/menu.png");
+    ui->menuButton->setCursor(Qt::PointingHandCursor);
     setIcon(50, ui->selfcenterButton, ":/icon/selfcenter.png");
+    ui->selfcenterButton->setCursor(Qt::PointingHandCursor);
     setIcon(35, ui->infoEditButton, ":/icon/editinfo.png");
-
+    ui->infoEditButton->setCursor(Qt::PointingHandCursor);
 
     // 设置滚动区域的布局
     setWindowTitle("北大树坑");
@@ -162,22 +165,45 @@ void MainWindow::handleSocketError(QAbstractSocket::SocketError error)
 
 void MainWindow::handleConnectionError()
 {
+    // 完全清空并重置scrollAreaWidgetContents
     QLayoutItem *child;
     while ((child = ui->scrollAreaWidgetContents->layout()->takeAt(0)) != nullptr) {
         delete child->widget();
         delete child;
     }
+    delete ui->scrollAreaWidgetContents->layout(); // 删除原有布局
 
+    // 创建新的垂直布局并设置为scrollAreaWidgetContents的布局
+    QVBoxLayout* layout = new QVBoxLayout(ui->scrollAreaWidgetContents);
+    layout->setAlignment(Qt::AlignCenter);
+    layout->setSpacing(20); // 设置控件间距
+
+    // 创建错误标签
     QLabel *errorLabel = new QLabel("无法连接到服务器\n请检查网络连接或服务器状态", ui->scrollAreaWidgetContents);
     errorLabel->setAlignment(Qt::AlignCenter);
     errorLabel->setStyleSheet("color: red; font-size: 14pt;");
-    ui->scrollAreaWidgetContents->layout()->addWidget(errorLabel);
+    errorLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    layout->addWidget(errorLabel);
 
-    QPushButton *retryButton = new QPushButton("重试", ui->scrollAreaWidgetContents);
+    // 创建包含图标的按钮容器
+    QWidget *buttonContainer = new QWidget(ui->scrollAreaWidgetContents);
+    QHBoxLayout *buttonLayout = new QHBoxLayout(buttonContainer);
+    buttonLayout->setContentsMargins(0, 0, 0, 0);
+
+    QPushButton *retryButton = new QPushButton("重试", buttonContainer);
+    setIcon(40, retryButton, ":/icon/retry.png");
+    retryButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     connect(retryButton, &QPushButton::clicked, this, [this]() {
         loadAllPosts();
     });
-    ui->scrollAreaWidgetContents->layout()->addWidget(retryButton);
+
+    retryButton->setCursor(Qt::PointingHandCursor);
+
+    buttonLayout->addWidget(retryButton, 0, Qt::AlignCenter);
+    buttonLayout->addStretch(); // 平衡布局
+
+    buttonContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    layout->addWidget(buttonContainer, 0, Qt::AlignCenter);
 }
 
 
