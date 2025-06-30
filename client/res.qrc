@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="/">
+        <file>icon/addpost.png</file>
+        <file>icon/selfcenter.png</file>
+        <file>icon/editinfo.png</file>
+        <file>icon/bookmark.png</file>
+        <file>icon/unbookmark.png</file>
+        <file>icon/submit.png</file>
+        <file>icon/retry.png</file>
+        <file>icon/menu.png</file>
+        <file>icon/off.png</file>
+        <file>icon/on.png</file>
+        <file>image/bg1.jpg</file>
+        <file>image/bg2.jpg</file>
+        <file>icon/comment.png</file>
+        <file>icon/search.png</file>
+        <file>image/bg3.jpg</file>
+        <file>image/bg4.jpg</file>
+        <file>image/bg5.jpg</file>
+        <file>image/bg6.jpg</file>
+    </qresource>
+</RCC>

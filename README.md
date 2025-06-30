@@ -1,4 +1,11 @@
 # cpp_groupwork
+
+#必要的说明：
+    由于项目使用了联网功能，所以需要同时运行client端和server端
+    否则client端无法注册和登录
+    联网时需要在client的main文件中手动设置服务器在局域网中的IP
+    由于IP硬编码的原因，client_deploy中的可执行文件无法连接其他服务器，仅供展示
+
 程设大作业
 功能设计文档：
 队名：QTQ队
