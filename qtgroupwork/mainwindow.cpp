@@ -45,16 +45,38 @@ MainWindow::MainWindow(QWidget *parent)
     loadingLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(loadingLabel);
 
-    if (client.connectToServer("192.168.43.242", 1234)) {
-        loadAllPosts();
-    } else {
-        handleConnectionError();
+    if (!client.isConnected()){
+        if (!client.connectToServer(qApp->property("IP").toString(), 1234)){
+            handleConnectionError();
+        }
     }
+    qDebug()<<"初始化";
+    loadAllPosts();
+
+    connect(&client, &Client::dataReceived, [this](const QByteArray& data) {
+        QString response = QString(data);
+        if(response == "FavoriteSuccess"){
+            return;
+        }
+        if (response == "Success") {
+            QMessageBox::information(this, "发布成功", "文本已成功发布了！");
+            loadAllPosts();
+            qDebug()<<"已加载";
+        } else {
+            QMessageBox::critical(this, "发布失败", "糟糕！请再试试看");
+        }
+    });
+
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+//设置用户名
+void MainWindow::setUserName(const QString& username){
+    myusername=username;
 }
 
 void MainWindow::setIcon(int a, QPushButton* button, const QString& filename){
@@ -77,33 +99,30 @@ void MainWindow::on_addPostButton_clicked()
     if (dialog.exec() == QDialog::Accepted) {
         QString content = dialog.getInputText();
 
-        if (client.connectToServer("192.168.43.242", 1234)) {
-            client.sendPost(content);
-
-            QLabel *sendingLabel = new QLabel("正在发送帖子...", ui->scrollAreaWidgetContents);
-            sendingLabel->setAlignment(Qt::AlignCenter);
-
-            connect(&client, &Client::dataReceived, [this](const QByteArray& data) {
-                QString response = QString(data);
-                if (response == "Success") {
-                    QMessageBox::information(this, "发布成功", "文本已成功发布了！");
-                } else {
-                    QMessageBox::critical(this, "发布失败", "糟糕！请再试试看");
-                }
-            });
-
-            ui->scrollAreaWidgetContents->layout()->addWidget(sendingLabel);
-
-            loadAllPosts();
-        } else {
-            QMessageBox::critical(this, "网络错误", "无法连接到服务器，请检查网络设置");
+        if (!client.isConnected()) {
+            if (!client.connectToServer(qApp->property("IP").toString(), 1234)) {
+                QMessageBox::critical(this, "网络错误", "无法连接到服务器，请检查网络设置");
+                return;
+            }
         }
+
+        client.sendPost(content);
+
+        QLabel *sendingLabel = new QLabel("正在发送帖子...", ui->scrollAreaWidgetContents);
+        sendingLabel->setAlignment(Qt::AlignCenter);
+
+
+        ui->scrollAreaWidgetContents->layout()->addWidget(sendingLabel);
+
     }
 }
 
+//把帖子显示到滚动界面上
 void MainWindow::addPost(const QString &content, const QString &fileName)
 {
     PostWidget *postWidget = new PostWidget(content, fileName, ui->scrollAreaWidgetContents);
+    postWidget->myusername = this->myusername;
+    postWidget->client_ptr = &(this->client);
     QVBoxLayout *layout = qobject_cast<QVBoxLayout*>(ui->scrollAreaWidgetContents->layout());
 
     QLayoutItem *item;
@@ -128,6 +147,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 void MainWindow::loadAllPosts()
 {
     client.requestAllPosts();
+    qDebug()<<"准备请求全部帖子！";
 }
 
 void MainWindow::handlePostsReceived(const QList<Post>& posts)
@@ -137,6 +157,7 @@ void MainWindow::handlePostsReceived(const QList<Post>& posts)
         delete child->widget();
         delete child;
     }
+    qDebug()<<"已删除";
 
     if (posts.isEmpty()) {
         QLabel *emptyLabel = new QLabel("暂无帖子", ui->scrollAreaWidgetContents);
@@ -255,3 +276,22 @@ void MainWindow::on_infoEditButton_clicked()
         }
     }
 }
+
+//弃置的函数
+void MainWindow::on_checkloveButton_clicked(){}
+
+void MainWindow::on_pushButton_clicked()
+{
+    if (!isFavoritesView) {
+        QMessageBox::information(this, "成功", "主页已更新为收藏");
+        client.requestFavorites(myusername);
+        ui->pushButton->setText("查看主页");
+        isFavoritesView = true;
+    } else {
+        QMessageBox::information(this, "成功", "主页已更新为全部帖子");
+        loadAllPosts();
+        ui->pushButton->setText("查看收藏");
+        isFavoritesView = false;
+    }
+}
+

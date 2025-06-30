@@ -2,10 +2,12 @@
 #define LOGIN_H
 
 #include <QWidget>
-#include <QSqlDatabase> //数据驱动
-#include <QSqlQuery> //数据库执行语句
+// #include <QSqlDatabase> //数据驱动
+// #include <QSqlQuery> //数据库执行语句
 #include <QMessageBox>//消息盒子
 #include <QDebug>
+#include "client.h"
+
 void sqlite_Init();
 
 namespace Ui {
@@ -27,6 +29,7 @@ private slots:
 
 private:
     Ui::Login *ui;
+    Client client;
 };
 
 #endif // LOGIN_H

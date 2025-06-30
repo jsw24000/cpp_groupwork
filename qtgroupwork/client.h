@@ -12,11 +12,16 @@ class Client : public QObject
 public:
     explicit Client(QObject *parent = nullptr);
     ~Client();
-
+    bool isConnected() const {
+        return m_socket->state() == QTcpSocket::ConnectedState;
+    }
     bool connectToServer(const QString &host, quint16 port);
     void sendRequest(const QByteArray &request);
     void requestAllPosts();
+    void requestFavorites(const QString& username);
     void sendPost(const QString& content);
+    void sendSignUpRequest(const QString &username, const QString &password);
+    void sendLoginRequest(const QString &username, const QString &password);
 
     QTcpSocket *m_socket;
 signals:

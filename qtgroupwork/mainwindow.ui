@@ -18,10 +18,13 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>0</y>
+      <y>-20</y>
       <width>791</width>
       <height>441</height>
      </rect>
+    </property>
+    <property name="currentIndex">
+     <number>1</number>
     </property>
     <widget class="QWidget" name="menuPage">
      <widget class="QPushButton" name="addPostButton">
@@ -181,6 +184,19 @@
        </item>
       </layout>
      </widget>
+     <widget class="QPushButton" name="pushButton">
+      <property name="geometry">
+       <rect>
+        <x>550</x>
+        <y>20</y>
+        <width>91</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>查看收藏</string>
+      </property>
+     </widget>
     </widget>
    </widget>
    <widget class="QWidget" name="layoutWidget">
@@ -240,7 +256,7 @@
      <x>0</x>
      <y>0</y>
      <width>790</width>
-     <height>18</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>

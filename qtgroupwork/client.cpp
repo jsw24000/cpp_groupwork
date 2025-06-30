@@ -11,11 +11,14 @@ Client::Client(QObject *parent) : QObject(parent), m_socket(new QTcpSocket(this)
     connect(m_socket, &QTcpSocket::errorOccurred, this, &Client::onError);
 }
 
+// client.cpp
 Client::~Client()
 {
     if (m_socket->state() == QTcpSocket::ConnectedState) {
         m_socket->disconnectFromHost();
-        m_socket->waitForDisconnected();
+        if (m_socket->state() != QTcpSocket::UnconnectedState) {
+            m_socket->waitForDisconnected();
+        }
     }
 }
 
@@ -25,6 +28,7 @@ bool Client::connectToServer(const QString &host, quint16 port)
     return m_socket->waitForConnected();
 }
 
+//通用的发送给请求方式
 void Client::sendRequest(const QByteArray &request)
 {
     if (m_socket->state() == QTcpSocket::ConnectedState) {
@@ -33,6 +37,18 @@ void Client::sendRequest(const QByteArray &request)
     }
 }
 
+//请求收藏
+void Client::requestFavorites(const QString& username)
+{
+    QJsonObject requestObj;
+    requestObj["type"] = "GET_FAVORITES";
+    requestObj["username"] = username;
+    QJsonDocument doc(requestObj);
+    QByteArray request = doc.toJson(QJsonDocument::Compact);
+    sendRequest(request);
+}
+
+//请求所有帖子
 void Client::requestAllPosts()
 {
     QByteArray request = "GetAllPosts";
@@ -49,6 +65,29 @@ void Client::sendPost(const QString& content)
     sendRequest(request);
 }
 
+void Client::sendSignUpRequest(const QString &username, const QString &password)
+{
+    QJsonObject requestObj;
+    requestObj["type"] = "SIGNUP";
+    requestObj["username"] = username;
+    requestObj["password"] = password;
+    QJsonDocument doc(requestObj);
+    QByteArray request = doc.toJson(QJsonDocument::Compact);
+    sendRequest(request);
+}
+
+void Client::sendLoginRequest(const QString &username, const QString &password)
+{
+    QJsonObject requestObj;
+    requestObj["type"] = "LOGIN";
+    requestObj["username"] = username;
+    requestObj["password"] = password;
+    QJsonDocument doc(requestObj);
+    QByteArray request = doc.toJson(QJsonDocument::Compact);
+    sendRequest(request);
+}
+
+//槽函数
 void Client::onConnected()
 {
     qDebug() << "Connected to server";
@@ -66,6 +105,12 @@ void Client::onReadyRead()
 
     QList<Post> posts;
     QString responseStr = QString::fromUtf8(data);
+    if (!responseStr.contains("\n===\n") ||!responseStr.contains("FileName: ")) {
+        // 数据格式不符合预期，不进行帖子解析
+        qDebug()<<"数据格式不符合预期，不进行帖子解析";
+        emit dataReceived(data);
+        return;
+    }
     QStringList postBlocks = responseStr.split("\n===\n", Qt::SkipEmptyParts);
     for (const QString& postBlock : postBlocks) {
         QStringList lines = postBlock.split("\n", Qt::KeepEmptyParts);

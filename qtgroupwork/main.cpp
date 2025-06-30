@@ -8,6 +8,7 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    a.setProperty("IP","192.168.36.173");
     AddPostDialog::loadTotalPostNumber();
     Login l;
     l.show();

@@ -25,27 +25,29 @@ void SignUp::on_loginButton_clicked()
 
 void SignUp::on_signUpButton_clicked()
 {
-    sqlite_Init();
     QString username = ui->usernameLineEdit->text();
     QString password = ui->passwordLineEdit->text();
-    QString sql=QString("insert into user(username,password) values('%1','%2');")
-                      .arg(username).arg(password);
-    //创建执行语句对象
-    QSqlQuery query;
-    //判断执行结果
-    if(!query.exec(sql))
-    {
-        qDebug()<<"insert into error";
-        QMessageBox::information(this,"注册认证","插入失败！");
+    if (!client.isConnected()) {
+        if (!client.connectToServer(qApp->property("IP").toString(), 1234)){
+            QMessageBox::critical(this, "网络错误", "无法连接到服务器，请检查网络设置");
+        }
     }
-    else
-    {
-        qDebug()<<"insert into success";
-        QMessageBox::information(this,"注册认证","插入成功！");
-        MainWindow *w = new MainWindow;
-        w->show();
-        this->close();
-    }
+
+        client.sendSignUpRequest(username, password);
+        connect(&client, &Client::dataReceived, [this,username](const QByteArray& data) {
+            QString response = QString(data);
+            if (response == "SignUpSuccess") {
+                qDebug() << "insert into success";
+                QMessageBox::information(this, "注册认证", "插入成功！");
+                MainWindow *w = new MainWindow;
+                w->setUserName(username);
+                w->show();
+                this->close();
+            } else {
+                qDebug() << "insert into error";
+                QMessageBox::information(this, "注册认证", "插入失败！");
+            }
+        });
 
 }
 

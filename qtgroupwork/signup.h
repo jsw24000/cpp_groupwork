@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include "mainwindow.h"
+#include "client.h"
 
 namespace Ui {
 class SignUp;
@@ -23,6 +24,7 @@ private slots:
 
 private:
     Ui::SignUp *ui;
+    Client client;
 };
 
 #endif // SIGNUP_H
