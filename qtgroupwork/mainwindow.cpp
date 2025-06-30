@@ -48,6 +48,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&client, &Client::favoritesReceived, this, &MainWindow::handleFavoritesReceived);
     connect(&client, &Client::dataReceived, this, &MainWindow::handleDataReceived);
     connect(&client, &Client::errorOccurred, this, &MainWindow::handleSocketError);
+    connect(&client, &Client::userInfoReceived, this, [this](const QJsonObject &userInfo) {
+        // 直接在这里处理或者调用现有函数
+        QJsonDocument doc(userInfo);
+        handleUserInfoResponse(doc.toJson());
+    });
 
     QLabel *loadingLabel = new QLabel("正在加载帖子...", ui->scrollAreaWidgetContents);
     loadingLabel->setAlignment(Qt::AlignCenter);
@@ -79,6 +84,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::handleUserInfoResponse(const QByteArray& data)
 {
+    qDebug()<<"收到user信息";
     QString response = QString(data);
     if (response == "UpdateUserInfoSuccess") {
         QMessageBox::information(this, "成功", "用户信息更新成功");
@@ -90,13 +96,21 @@ void MainWindow::handleUserInfoResponse(const QByteArray& data)
         if (!doc.isNull() && doc.isObject() && doc.object()["type"].toString() == "USERINFO") {
             QJsonObject userInfo = doc.object();
             ui->usernameLabel->setText(userInfo["username"].toString());
-            ui->passwordLabel->setText("********");
+            // 直接显示密码明文
+            currentPassword = userInfo["password"].toString();
+            ui->passwordLabel->setText(currentPassword);
             ui->numberLabel->setText(userInfo["number"].toString());
             ui->schoolLabel->setText(userInfo["school"].toString());
             ui->phoneLabel->setText(userInfo["phone"].toString());
+            qDebug()<<"信息如下";
+            qDebug()<<userInfo["password"];
+            qDebug()<<userInfo["number"];
+            qDebug()<<userInfo["school"];
+            qDebug()<<userInfo["phone"];
         }
     }
 }
+
 
 MainWindow::~MainWindow()
 {
@@ -314,10 +328,8 @@ void MainWindow::on_infoEditButton_clicked()
 
             // 特殊处理密码字段
             if (field == "password") {
-                edit->setEchoMode(QLineEdit::Password);
-                if (originalLabel->text() == "********") {
-                    edit->clear(); // 清除星号，让用户重新输入
-                }
+                edit->setText(currentPassword); // 显示真实密码
+                edit->setEchoMode(QLineEdit::Normal); // 明文显示
             }
 
             // 用户名不可编辑
@@ -337,10 +349,10 @@ void MainWindow::on_infoEditButton_clicked()
             // 更新Label文本
             QString newText = edit->text();
             if (field == "password") {
-                originalLabel->setText("********"); // 密码显示为星号
-            } else {
-                originalLabel->setText(newText);
+                currentPassword = edit->text(); // 保存新密码
+                originalLabel->setText(currentPassword); // 显示明文密码
             }
+            originalLabel->setText(newText);
 
             // 恢复原始尺寸属性
             originalLabel->setSizePolicy(originalSizePolicies[field]);
@@ -361,19 +373,19 @@ void MainWindow::on_infoEditButton_clicked()
     // 如果是提交模式，发送更新请求
     if (!isEditable && !myusername.isEmpty()) {
         // 收集所有字段的值
-        QString password;
+        QString password = currentPassword;
         QString number = ui->numberLabel->text();
         QString school = ui->schoolLabel->text();
         QString phone = ui->phoneLabel->text();
 
-        // 获取密码（可能是新输入的或原有的）
-        QLineEdit* passwordEdit = findChild<QLineEdit*>("passwordLineEdit");
-        if (passwordEdit && !passwordEdit->text().isEmpty()) {
-            password = passwordEdit->text();
-        } else {
-            password = "defaultPassword"; // 这里应该从服务器获取真实密码或保持原密码
-            // 实际应用中应该避免硬编码密码，这里需要改进
-        }
+        // // 获取密码（可能是新输入的或原有的）
+        // QLineEdit* passwordEdit = findChild<QLineEdit*>("passwordLineEdit");
+        // if (passwordEdit && !passwordEdit->text().isEmpty()) {
+        //     password = passwordEdit->text();
+        // } else {
+        //     password = currentUserInfo["password"].toString(); // 这里应该从服务器获取真实密码或保持原密码
+        //     // 实际应用中应该避免硬编码密码，这里需要改进
+        // }
 
         // 构建用户信息JSON对象
         QJsonObject userInfo;

@@ -147,11 +147,26 @@ void Client::onReadyRead()
     QByteArray data = m_socket->readAll();
     qDebug() << "Received from server:" << QString(data);
 
-    // 尝试解析可能的JSON信息头
-    QJsonDocument jsonDoc;
+    // 首先尝试完整解析整个数据为JSON
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(data, &parseError);
+
+    // 检查是否是完整的USERINFO JSON
+    if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
+        QJsonObject obj = jsonDoc.object();
+        qDebug() << "Parsed JSON object:" << obj;
+
+        if (obj.contains("type") && obj["type"].toString() == "USERINFO") {
+            qDebug() << "Emitting userInfoReceived with:" << obj;
+            emit userInfoReceived(obj);
+            return;  // 处理完成后直接返回
+        }
+    } else {
+        qDebug() << "Full JSON parse failed, trying alternative parsing";
+    }
+
     bool hasJsonHeader = false;
     int newlineIndex = data.indexOf('\n');
-
     if (newlineIndex != -1) {
         QByteArray jsonPart = data.left(newlineIndex);
         QJsonParseError parseError;

@@ -62,7 +62,8 @@ private:
     QMap<QString, QSizePolicy> originalSizePolicies; // 存储原始尺寸策略
     QMap<QString, QSize> originalSizeHints;        // 存储原始大小提示
     QVBoxLayout *favoritesLayout;
-
+    QJsonObject currentUserInfo;
+    QString currentPassword;
     void loadAllPosts();
     void handleConnectionError();
     void closeEvent(QCloseEvent *event) override;

@@ -30,6 +30,7 @@ public:
     QTcpSocket *m_socket;
 signals:
     void dataReceived(const QByteArray &data);
+    void userInfoReceived(const QJsonObject &userInfo);
     void postsReceived(const QList<Post>& posts);
     void favoritesReceived(const QList<Post>& posts);
     void errorOccurred(QAbstractSocket::SocketError socketError);
