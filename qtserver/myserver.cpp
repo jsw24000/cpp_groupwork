@@ -73,9 +73,40 @@ void MyServer::handleClientData() {
         }
         //如果是显示所有收藏的帖子的请求
         else if (obj.contains("type") && obj["type"].toString() == "GET_FAVORITES" && obj.contains("username")) {
-            qDebug()<<"准备读取所有帖子";
+            qDebug()<<"准备读取所有收藏的帖子";
             QString username = obj["username"].toString();
             handleGetFavorites(socket, username);
+            return;
+        }
+        // 如果是搜索请求
+        else if (obj.contains("type") && obj["type"].toString() == "SEARCH" && obj.contains("keyword")) {
+            QString keyword = obj["keyword"].toString();
+            handleSearchRequest(socket, keyword);
+            return;
+        }
+        //如果是请求获取或者修改用户信息
+        else if (obj.contains("type") && obj["type"].toString() == "GET_USERINFO" && obj.contains("username")) {
+            QString username = obj["username"].toString();
+            handleGetUserInfo(socket, username);
+            return;
+        }
+        else if (obj.contains("type") && obj["type"].toString() == "UPDATE_USERINFO" && obj.contains("username")) {
+            QJsonObject userInfo = obj["userInfo"].toObject();
+            QString username = obj["username"].toString();
+            handleUpdateUserInfo(socket, username, userInfo);
+            return;
+        }
+        //如果是有关评论的请求
+        else if (obj.contains("type") && obj["type"].toString() == "GET_COMMENTS" && obj.contains("filename")) {
+            QString filename = obj["filename"].toString();
+            handleGetComments(socket, filename);
+            return;
+        }
+        else if (obj.contains("type") && obj["type"].toString() == "POST_COMMENT" && obj.contains("filename") && obj.contains("username") && obj.contains("content")) {
+            QString filename = obj["filename"].toString();
+            QString username = obj["username"].toString();
+            QString content = obj["content"].toString();
+            handlePostComment(socket, filename, username, content);
             return;
         }
         //如果是登录或者注册请求
@@ -85,7 +116,15 @@ void MyServer::handleClientData() {
             if (type == "SIGNUP") {
                 QString username = obj["username"].toString();
                 QString password = obj["password"].toString();
-                handleSignUp(socket, username, password);
+                // 创建包含用户信息的JSON对象
+                QJsonObject userInfo;
+                userInfo["password"] = password;
+                userInfo["number"] = "";  // 默认值
+                userInfo["school"] = "";  // 默认值
+                userInfo["phone"] = "";   // 默认值
+                // 转换为JSON文档并发送
+                QJsonDocument doc(userInfo);
+                handleSignUp(socket, username, doc.toJson());
                 return;
             } else if (type == "LOGIN") {
                 QString username = obj["username"].toString();
@@ -97,6 +136,149 @@ void MyServer::handleClientData() {
     }else{
         qDebug() << "JSON 解析错误:" << parseError.errorString();
     }
+}
+
+//获取已有评论
+void MyServer::handleGetComments(QTcpSocket* socket, const QString& filename)
+{
+    // QString commentFilePath = "src/comments/" + filename + "_comments.txt";
+    // QFile commentFile(commentFilePath);
+
+    // if (commentFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    //     QTextStream in(&commentFile);
+    //     QByteArray response;
+
+    //     while (!in.atEnd()) {
+    //         QString line = in.readLine();
+    //         response.append(line.toUtf8() + "\n");
+    //     }
+
+    //     socket->write(response);
+    //     commentFile.close();
+    // } else {
+    //     QByteArray response = "NoComments";
+    //     socket->write(response);
+    // }
+    // socket->waitForBytesWritten();
+}
+
+//储存评论
+void MyServer::handlePostComment(QTcpSocket* socket, const QString& filename, const QString& username, const QString& content)
+{
+    // // 确保评论目录存在
+    // QDir dir("src/comments");
+    // if (!dir.exists()) {
+    //     dir.mkpath(".");
+    // }
+
+    // QString commentFilePath = "src/comments/" + filename + "_comments.txt";
+    // QFile commentFile(commentFilePath);
+
+    // if (commentFile.open(QIODevice::Append | QIODevice::Text)) {
+    //     QTextStream out(&commentFile);
+    //     out << username << ": " << content << "\n";
+    //     commentFile.close();
+
+    //     QByteArray response = "CommentPosted";
+    //     socket->write(response);
+    // } else {
+    //     QByteArray response = "CommentFailed";
+    //     socket->write(response);
+    // }
+    // socket->waitForBytesWritten();
+}
+
+//获取用户信息
+void MyServer::handleGetUserInfo(QTcpSocket* socket, const QString& username)
+{
+    QString filePath = "src/users/" + username + ".txt";
+    QFile file(filePath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QByteArray data = file.readAll();
+        file.close();
+
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
+
+        if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+            QByteArray response = "GetUserInfoFailed: Invalid JSON format";
+            socket->write(response);
+            socket->waitForBytesWritten();
+            return;
+        }
+
+        QJsonObject responseObj;
+        responseObj["type"] = "USERINFO";
+        responseObj["username"] = username;
+        responseObj["password"] = doc.object()["password"].toString();
+        responseObj["number"] = doc.object()["number"].toString();
+        responseObj["school"] = doc.object()["school"].toString();
+        responseObj["phone"] = doc.object()["phone"].toString();
+
+        QJsonDocument responseDoc(responseObj);
+        socket->write(responseDoc.toJson());
+        socket->waitForBytesWritten();
+    } else {
+        QByteArray response = "GetUserInfoFailed";
+        socket->write(response);
+        socket->waitForBytesWritten();
+    }
+}
+
+//修改用户信息
+void MyServer::handleUpdateUserInfo(QTcpSocket* socket, const QString& username, const QJsonObject& userInfo)
+{
+    QString filePath = "src/users/" + username + ".txt";
+    QFile file(filePath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QJsonDocument doc(userInfo);
+        file.write(doc.toJson());
+        file.close();
+
+        QByteArray response = "UpdateUserInfoSuccess";
+        socket->write(response);
+        socket->waitForBytesWritten();
+    } else {
+        QByteArray response = "UpdateUserInfoFailed";
+        socket->write(response);
+        socket->waitForBytesWritten();
+    }
+}
+
+// 处理搜索请求
+void MyServer::handleSearchRequest(QTcpSocket* socket, const QString& keyword)
+{
+    QList<QFileInfo> searchResults = searchManager->search(keyword); // 调用搜索算法
+
+    QByteArray response;
+    for (const QFileInfo& fileInfo : searchResults) {
+        qDebug()<<"找到了文件"<<fileInfo;
+        QFile file(fileInfo.absoluteFilePath());
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&file);
+            QString content = in.readAll();
+            QString fileName = fileInfo.fileName();
+
+            // 添加文件名行
+            response.append(("FileName: " + fileName + "\n").toUtf8());
+            // 添加内容长度行（可选但推荐，用于处理内容中可能包含的分隔符）
+            response.append(("Content-Length: " + QString::number(content.length()) + "\n").toUtf8());
+
+            // 添加分隔行
+            response.append("---\n");
+
+            // 添加内容
+            response.append(content.toUtf8());
+
+            // 添加结束标记
+            response.append("\n===\n");
+
+            file.close();
+        }
+    }
+
+    socket->write(response);
+    socket->waitForBytesWritten();
 }
 
 //处理读取所有帖子的请求
@@ -143,6 +325,9 @@ void MyServer::handleGetFavorites(QTcpSocket* socket, const QString& username)
         QTextStream in(&favoritesFile);
         QByteArray response;
 
+        QJsonObject responseObj;
+        responseObj["type"] = "GET_FAVORITES";
+
         QString line;
         while (!in.atEnd()) {
             // 读取文件名行
@@ -182,6 +367,9 @@ void MyServer::handleGetFavorites(QTcpSocket* socket, const QString& username)
 
         favoritesFile.close();
 
+        QJsonDocument doc(responseObj);
+        response.prepend(doc.toJson(QJsonDocument::Compact) + "\n");
+
         socket->write(response);
         socket->waitForBytesWritten();
     } else {
@@ -193,7 +381,7 @@ void MyServer::handleGetFavorites(QTcpSocket* socket, const QString& username)
 }
 
 //处理注册请求
-void MyServer::handleSignUp(QTcpSocket* socket, const QString &username, const QString &password)
+void MyServer::handleSignUp(QTcpSocket* socket, const QString &username, const QByteArray &userInfoData)
 {
     QDir dir("src/users");
     if (!dir.exists()) {
@@ -208,9 +396,16 @@ void MyServer::handleSignUp(QTcpSocket* socket, const QString &username, const Q
     QString filePath = "src/users/" + username + ".txt";
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QJsonDocument doc = QJsonDocument::fromJson(userInfoData);
+        QJsonObject userInfo = doc.object();
+
         QTextStream out(&file);
-        out << password;
+        out << userInfo["password"].toString() << "\n";
+        out << userInfo["number"].toString() << "\n";
+        out << userInfo["school"].toString() << "\n";
+        out << userInfo["phone"].toString();
         file.close();
+
         QByteArray response = "SignUpSuccess";
         socket->write(response);
         socket->waitForBytesWritten();
@@ -227,23 +422,33 @@ void MyServer::handleLogin(QTcpSocket* socket, const QString &username, const QS
     QString filePath = "src/users/" + username + ".txt";
     QFile file(filePath);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        QString storedPassword = in.readAll();
+        // 读取整个文件内容
+        QByteArray fileData = file.readAll();
         file.close();
+
+        // 解析JSON格式的用户信息
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(fileData, &parseError);
+
+        if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+            qDebug() << "JSON解析错误:" << parseError.errorString();
+            socket->write("LoginError");
+            socket->waitForBytesWritten();
+            return;
+        }
+
+        QJsonObject userInfo = doc.object();
+        QString storedPassword = userInfo["password"].toString();
+
         if (storedPassword == password) {
-            QByteArray response = "LoginSuccess";
-            socket->write(response);
-            socket->waitForBytesWritten();
+            socket->write("LoginSuccess");
         } else {
-            QByteArray response = "LoginError";
-            socket->write(response);
-            socket->waitForBytesWritten();
+            socket->write("LoginError");
         }
     } else {
-        QByteArray response = "LoginError";
-        socket->write(response);
-        socket->waitForBytesWritten();
+        socket->write("LoginError");
     }
+    socket->waitForBytesWritten();
 }
 
 //处理存贴请求

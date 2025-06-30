@@ -2,6 +2,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QMessageBox>
 
 Client::Client(QObject *parent) : QObject(parent), m_socket(new QTcpSocket(this))
 {
@@ -35,6 +36,49 @@ void Client::sendRequest(const QByteArray &request)
         m_socket->write(request);
         m_socket->waitForBytesWritten();
     }
+}
+
+// 请求获取评论
+void Client::requestComments(const QString& filename)
+{
+    QJsonObject requestObj;
+    requestObj["type"] = "GET_COMMENTS";
+    requestObj["filename"] = filename;
+    QJsonDocument doc(requestObj);
+    sendRequest(doc.toJson());
+}
+
+// 发送新评论
+void Client::postComment(const QString& filename, const QString& username, const QString& content)
+{
+    QJsonObject requestObj;
+    requestObj["type"] = "POST_COMMENT";
+    requestObj["filename"] = filename;
+    requestObj["username"] = username;
+    requestObj["content"] = content;
+    QJsonDocument doc(requestObj);
+    sendRequest(doc.toJson());
+}
+
+//请求用户信息
+void Client::requestUserInfo(const QString& username)
+{
+    QJsonObject requestObj;
+    requestObj["type"] = "GET_USERINFO";
+    requestObj["username"] = username;
+    QJsonDocument doc(requestObj);
+    sendRequest(doc.toJson());
+}
+
+//请求修改用户信息
+void Client::updateUserInfo(const QString& username, const QJsonObject& userInfo)
+{
+    QJsonObject requestObj;
+    requestObj["type"] = "UPDATE_USERINFO";
+    requestObj["username"] = username;
+    requestObj["userInfo"] = userInfo;
+    QJsonDocument doc(requestObj);
+    sendRequest(doc.toJson());
 }
 
 //请求收藏
@@ -103,36 +147,77 @@ void Client::onReadyRead()
     QByteArray data = m_socket->readAll();
     qDebug() << "Received from server:" << QString(data);
 
-    QList<Post> posts;
+    // 尝试解析可能的JSON信息头
+    QJsonDocument jsonDoc;
+    bool hasJsonHeader = false;
+    int newlineIndex = data.indexOf('\n');
+
+    if (newlineIndex != -1) {
+        QByteArray jsonPart = data.left(newlineIndex);
+        QJsonParseError parseError;
+        jsonDoc = QJsonDocument::fromJson(jsonPart, &parseError);
+        if (parseError.error == QJsonParseError::NoError && jsonDoc.isObject()) {
+            hasJsonHeader = true;
+            // 移除JSON信息头
+            data = data.mid(newlineIndex + 1);
+        }
+    }
+
     QString responseStr = QString::fromUtf8(data);
-    if (!responseStr.contains("\n===\n") ||!responseStr.contains("FileName: ")) {
-        // 数据格式不符合预期，不进行帖子解析
-        qDebug()<<"数据格式不符合预期，不进行帖子解析";
+
+    // 处理简单响应
+    if (responseStr == "Success") {
+        emit dataReceived(data);
+        return;
+    } else if (responseStr == "SignUpSuccess") {
+        emit dataReceived(data);
+        return;
+    } else if (responseStr == "LoginSuccess") {
+        emit dataReceived(data);
+        return;
+    } else if (responseStr.startsWith("FavoriteSuccess")) {
+        emit dataReceived(data);
+        return;
+    } else if (responseStr.startsWith("GetFavoritesFailed") || responseStr.startsWith("FavoriteFailed")) {
         emit dataReceived(data);
         return;
     }
+
+    // 处理帖子数据
+    QList<Post> posts;
     QStringList postBlocks = responseStr.split("\n===\n", Qt::SkipEmptyParts);
+
     for (const QString& postBlock : postBlocks) {
         QStringList lines = postBlock.split("\n", Qt::KeepEmptyParts);
         QString fileName;
         QString content;
+        bool inContent = false;
+
         for (const QString& line : lines) {
             if (line.startsWith("FileName: ")) {
                 fileName = line.mid(10);
             } else if (line.startsWith("Content-Length: ")) {
-                // 这里如果需要根据内容长度做更精确处理可进一步编写逻辑，目前先略过
+                // 可以忽略或用于验证
                 continue;
             } else if (line == "---") {
+                inContent = true;
                 continue;
-            } else {
+            } else if (inContent) {
                 content += line + "\n";
             }
         }
-        if (!fileName.isEmpty() &&!content.isEmpty()) {
-            posts.append(Post(fileName, content));
+
+        if (!fileName.isEmpty() && !content.isEmpty()) {
+            posts.append(Post(fileName, content.trimmed()));
         }
     }
-    emit postsReceived(posts);
+
+    // 判断是收藏帖子还是普通帖子
+    if (hasJsonHeader && jsonDoc.object().contains("type") && jsonDoc.object()["type"].toString() == "GET_FAVORITES") {
+        emit favoritesReceived(posts);
+    } else {
+        emit postsReceived(posts);
+    }
 }
 
 void Client::onError(QAbstractSocket::SocketError socketError)

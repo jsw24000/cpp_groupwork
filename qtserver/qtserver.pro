@@ -11,11 +11,13 @@ CONFIG += c++17
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    myserver.cpp
+    myserver.cpp \
+    searchmanager.cpp
 
 HEADERS += \
     mainwindow.h \
-    myserver.h
+    myserver.h \
+    searchmanager.h
 
 FORMS += \
     mainwindow.ui

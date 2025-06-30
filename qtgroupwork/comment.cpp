@@ -3,91 +3,105 @@
 #include "reply.h"
 
 #include <QFile>
+#include <QDir>
 #include <QTextStream>
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QMessageBox>
+#include <QJsonObject>
 
-Comment::Comment(const QString &filename, QWidget *parent)
+Comment::Comment(QString postcontent, const QString &filename, Client* client, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::Comment)
     , my_filename(filename)
+    , m_client(client)
 {
     ui->setupUi(this);
-    loadText(my_filename);
+    ui->textEdit->setReadOnly(true);
+    QString richText = QString("<b><font color='blue'>%1</font></b>").arg(postcontent);
+    ui->textEdit->setHtml(richText);
+
+    // 创建评论列表并添加到scrollArea中
+    commentList = new QListWidget();
+    commentList->setWordWrap(true);
+    commentList->setStyleSheet("QListWidget { border: none; }");
+    ui->scrollArea->setWidget(commentList);
+    ui->scrollArea->setWidgetResizable(true);
+
+    // 确保评论目录存在
+    QDir().mkpath("src/comments");
+
+    // 加载已有评论
+    loadComments();
+
+    // 连接信号
+    // connect(m_client, &Client::dataReceived, this, &Comment::handleDataReceived);
+
+}
+
+void Comment::loadComments()
+{
+    commentList->clear();
+
+    QString commentFilePath = "comments/" + my_filename + "_comments.txt";
+    QFile commentFile(commentFilePath);
+
+    if (commentFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&commentFile);
+
+        while (!in.atEnd()) {
+            QString line = in.readLine();
+            if (!line.isEmpty()) {
+                QListWidgetItem *item = new QListWidgetItem(line);
+                item->setFlags(item->flags() & ~Qt::ItemIsSelectable); // 不可选中
+                commentList->addItem(item);
+            }
+        }
+
+        commentFile.close();
+    }
+}
+
+void Comment::saveComment(const QString& username, const QString& content)
+{
+    // 确保评论目录存在
+    QDir().mkpath("comments");
+
+    QString commentFilePath = "comments/" + my_filename + "_comments.txt";
+    QFile commentFile(commentFilePath);
+
+    if (commentFile.open(QIODevice::Append | QIODevice::Text)) {
+        QTextStream out(&commentFile);
+
+        // 格式化评论: [时间] 用户名: 内容
+        QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm");
+        QString formattedComment = QString("[%1] %2: %3").arg(timestamp, username, content);
+
+        out << formattedComment << "\n";
+        commentFile.close();
+
+        // 重新加载评论
+        loadComments();
+    } else {
+        QMessageBox::warning(this, "错误", "无法保存评论");
+    }
 }
 
 Comment::~Comment()
 {
     delete ui;
 }
-
-void Comment::loadText(const QString &filename)
-{
-    QString filePath = "src/posts/" + filename;
-    QFile file(filePath);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        QString text = in.readAll();
-        ui->textEdit->setPlainText(text);
-        file.close();
-    } else {
-        qDebug() << "Failed to open file:" << filePath;
-    }
-}
+//暂时弃置的函数
+void Comment::handleCommentsReceived(const QByteArray& data){}
+void Comment::handleDataReceived(const QByteArray& data){}
+void Comment::requestComments(){}
 
 void Comment::on_pushButton_clicked()
 {
-    Reply *reply = new Reply(my_filename);
+    Reply *reply = new Reply(my_filename, m_client);
+    reply->myusername = myusername;
     if (reply->exec() == QDialog::Accepted) {
-        loadReplies();
+        saveComment(myusername, reply->getCommentText());
     }
-}
-
-#include <QChar>
-#include <QStringList>
-
-void Comment::loadReplies()
-{
-    QString replyFileName = "src/reply/" + my_filename + "_reply";
-    QFile file(replyFileName);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        QString allText = in.readAll();
-        QStringList replies = allText.split("---END_OF_REPLY---\n", Qt::SkipEmptyParts);
-
-        QVBoxLayout *layout = qobject_cast<QVBoxLayout*>(ui->scrollAreaWidgetContents->layout());
-        if (!layout) {
-            layout = new QVBoxLayout(ui->scrollAreaWidgetContents);
-            ui->scrollAreaWidgetContents->setLayout(layout);
-        }
-
-        // 清空现有回复
-        QLayoutItem *item;
-        while ((item = layout->takeAt(0)) != nullptr) {
-            delete item->widget();
-            delete item;
-        }
-
-        const int FIXED_REPLY_HEIGHT = 30; // 定义评论的固定高度
-
-        QString names[26] = {"Alice", "Bob", "Carol", "Dave", "Eve", "Francis", "Grace", "Hans", "Isabella", "Jason", "Kate",
-                            "Louis", "Margaret", "Nathan", "Olivia", "Paul", "Queen", "Richard", "Susan", "Thomas", "Uma", "Vivian", "Winnie", "Xander", "Yasmine", "Zach"};
-        int current_num = 0;
-        for (const QString &reply : replies) {
-            QString name = names[current_num];
-            QString fullReply = name + ": " + reply.trimmed();
-            QLabel *replyLabel = new QLabel(fullReply, ui->scrollAreaWidgetContents);
-            replyLabel->setFixedHeight(FIXED_REPLY_HEIGHT); // 设置评论标签的固定高度
-            layout->addWidget(replyLabel);
-
-            // 更新首字母
-            if (current_num == 25) {
-                current_num = 0;
-            } else {
-                current_num++;
-            }
-        }
-
-        file.close();
-    }
+    delete reply;
 }

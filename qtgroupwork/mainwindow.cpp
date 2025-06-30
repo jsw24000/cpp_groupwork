@@ -37,7 +37,15 @@ MainWindow::MainWindow(QWidget *parent)
     layout->setSpacing(5);
     ui->scrollAreaWidgetContents->setLayout(layout);
 
+    // 设置个人中心滚动区域的布局
+    favoritesLayout = new QVBoxLayout(ui->scrollAreaWidgetContents_2);
+    favoritesLayout->setAlignment(Qt::AlignTop);
+    favoritesLayout->setSpacing(5);
+    ui->scrollAreaWidgetContents_2->setLayout(favoritesLayout);
+
+    connect(&client, &Client::dataReceived, this, &MainWindow::handleUserInfoResponse);
     connect(&client, &Client::postsReceived, this, &MainWindow::handlePostsReceived);
+    connect(&client, &Client::favoritesReceived, this, &MainWindow::handleFavoritesReceived);
     connect(&client, &Client::dataReceived, this, &MainWindow::handleDataReceived);
     connect(&client, &Client::errorOccurred, this, &MainWindow::handleSocketError);
 
@@ -51,7 +59,6 @@ MainWindow::MainWindow(QWidget *parent)
         }
     }
     qDebug()<<"初始化";
-    loadAllPosts();
 
     connect(&client, &Client::dataReceived, [this](const QByteArray& data) {
         QString response = QString(data);
@@ -62,11 +69,33 @@ MainWindow::MainWindow(QWidget *parent)
             QMessageBox::information(this, "发布成功", "文本已成功发布了！");
             loadAllPosts();
             qDebug()<<"已加载";
-        } else {
-            QMessageBox::critical(this, "发布失败", "糟糕！请再试试看");
         }
     });
+    loadAllPosts();
 
+    // 清空默认用户名
+    ui->usernameLabel->setText("");
+}
+
+void MainWindow::handleUserInfoResponse(const QByteArray& data)
+{
+    QString response = QString(data);
+    if (response == "UpdateUserInfoSuccess") {
+        QMessageBox::information(this, "成功", "用户信息更新成功");
+        client.requestUserInfo(myusername);
+    } else if (response == "UpdateUserInfoFailed") {
+        QMessageBox::warning(this, "错误", "用户信息更新失败");
+    } else {
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        if (!doc.isNull() && doc.isObject() && doc.object()["type"].toString() == "USERINFO") {
+            QJsonObject userInfo = doc.object();
+            ui->usernameLabel->setText(userInfo["username"].toString());
+            ui->passwordLabel->setText("********");
+            ui->numberLabel->setText(userInfo["number"].toString());
+            ui->schoolLabel->setText(userInfo["school"].toString());
+            ui->phoneLabel->setText(userInfo["phone"].toString());
+        }
+    }
 }
 
 MainWindow::~MainWindow()
@@ -77,6 +106,8 @@ MainWindow::~MainWindow()
 //设置用户名
 void MainWindow::setUserName(const QString& username){
     myusername=username;
+    ui->usernameLabel->setText(username); // 更新UI显示
+    client.requestUserInfo(username); // 立即请求用户信息
 }
 
 void MainWindow::setIcon(int a, QPushButton* button, const QString& filename){
@@ -139,6 +170,14 @@ void MainWindow::addPost(const QString &content, const QString &fileName)
     layout->addWidget(postWidget);
 }
 
+void MainWindow::addPostToFavorites(const QString &content, const QString &fileName)
+{
+    PostWidget *postWidget = new PostWidget(content, fileName, ui->scrollAreaWidgetContents_2);
+    postWidget->myusername = this->myusername;
+    postWidget->client_ptr = &(this->client);
+    favoritesLayout->addWidget(postWidget);
+}
+
 void MainWindow::closeEvent(QCloseEvent *event) {
     AddPostDialog::saveTotalPostNumber(); // 关闭时保存计数器
     event->accept();
@@ -150,6 +189,7 @@ void MainWindow::loadAllPosts()
     qDebug()<<"准备请求全部帖子！";
 }
 
+//处理接收到的帖子（要显示在主页面上的）
 void MainWindow::handlePostsReceived(const QList<Post>& posts)
 {
     QLayoutItem *child;
@@ -166,6 +206,26 @@ void MainWindow::handlePostsReceived(const QList<Post>& posts)
     } else {
         for (const Post& post : posts) {
             addPost(post.content(), post.fileName());
+        }
+    }
+}
+
+void MainWindow::handleFavoritesReceived(const QList<Post>& posts)
+{
+    QLayoutItem *child;
+    while ((child = favoritesLayout->takeAt(0)) != nullptr) {
+        delete child->widget();
+        delete child;
+    }
+    qDebug()<<"已删除收藏帖子";
+
+    if (posts.isEmpty()) {
+        QLabel *emptyLabel = new QLabel("暂无收藏帖子", ui->scrollAreaWidgetContents_2);
+        emptyLabel->setAlignment(Qt::AlignCenter);
+        favoritesLayout->addWidget(emptyLabel);
+    } else {
+        for (const Post& post : posts) {
+            addPostToFavorites(post.content(), post.fileName());
         }
     }
 }
@@ -208,6 +268,9 @@ bool isEditable = false;
 void MainWindow::on_selfcenterButton_clicked()
 {
     ui->stackedWidget->setCurrentIndex(1);
+    if (!myusername.isEmpty()) {
+        client.requestUserInfo(myusername);
+    }
 }
 
 
@@ -223,51 +286,70 @@ void MainWindow::on_infoEditButton_clicked()
     isEditable = !isEditable;
     const QStringList fields = {"username", "password", "number", "school", "phone"};
     QPushButton* infoEdit = findChild<QPushButton*>("infoEditButton");
-    if (infoEdit) setIcon(35, infoEdit, isEditable ? ":/icon/submit.png" : ":/icon/editinfo.png"); // 让按钮根据状态改变text信息
 
+    // 更新按钮图标
+    if (infoEdit) {
+        setIcon(35, infoEdit, isEditable ? ":/icon/submit.png" : ":/icon/editinfo.png");
+    }
 
     for (const QString& field : fields) {
         const QString labelName = field + "Label";
         const QString lineEditName = field + "LineEdit";
 
-        if (isEditable) { // 进入编辑模式：替换Label为LineEdit
-            QLabel* originalLabel = findChild<QLabel*>(labelName); // 找到对应的QLabel
+        if (isEditable) {
+            // 进入编辑模式：替换Label为LineEdit
+            QLabel* originalLabel = findChild<QLabel*>(labelName);
             if (!originalLabel || originalWidgets.contains(field)) continue;
 
-            // 保存当前QLabel的原始状态（到相应QMap中）
+            // 保存原始状态
             originalWidgets[field] = originalLabel;
             originalSizePolicies[field] = originalLabel->sizePolicy();
             originalSizeHints[field] = originalLabel->sizeHint();
 
-            // 创建LineEdit并继承Label的尺寸属性
+            // 创建LineEdit
             QLineEdit* edit = new QLineEdit(originalLabel->text());
             edit->setObjectName(lineEditName);
-            edit->setSizePolicy(originalSizePolicies[field]); // 统一尺寸策略
-            edit->setMinimumSize(originalSizeHints[field]);   // 统一最小尺寸
+            edit->setSizePolicy(originalSizePolicies[field]);
+            edit->setMinimumSize(originalSizeHints[field]);
 
-            // 特殊处理密码字段（变为不可见）
+            // 特殊处理密码字段
             if (field == "password") {
                 edit->setEchoMode(QLineEdit::Password);
+                if (originalLabel->text() == "********") {
+                    edit->clear(); // 清除星号，让用户重新输入
+                }
             }
 
-            // 替换控件并隐藏原始Label
+            // 用户名不可编辑
+            if (field == "username") {
+                edit->setReadOnly(true);
+            }
+
+            // 替换控件
             ui->gridLayout->replaceWidget(originalLabel, edit);
             originalLabel->hide();
-        } else { // 提交修改：替换LineEdit为Label
+        } else {
+            // 提交修改：替换LineEdit为Label
             QLineEdit* edit = findChild<QLineEdit*>(lineEditName);
-            QLabel* originalLabel = originalWidgets.value(field); // 从成员变量获取
+            QLabel* originalLabel = originalWidgets.value(field);
             if (!edit || !originalLabel) continue;
 
-            // 更新Label文本并恢复原始尺寸属性
-            originalLabel->setText(edit->text());
+            // 更新Label文本
+            QString newText = edit->text();
+            if (field == "password") {
+                originalLabel->setText("********"); // 密码显示为星号
+            } else {
+                originalLabel->setText(newText);
+            }
+
+            // 恢复原始尺寸属性
             originalLabel->setSizePolicy(originalSizePolicies[field]);
             originalLabel->setMinimumSize(originalSizeHints[field]);
 
-            if(field == "password") originalLabel->setText("********");
-            // 替换控件并销毁LineEdit
+            // 替换控件
             ui->gridLayout->replaceWidget(edit, originalLabel);
             originalLabel->show();
-            edit->deleteLater();  // 彻底移除LineEdit
+            edit->deleteLater();
 
             // 清理临时存储
             originalWidgets.remove(field);
@@ -275,23 +357,81 @@ void MainWindow::on_infoEditButton_clicked()
             originalSizeHints.remove(field);
         }
     }
+
+    // 如果是提交模式，发送更新请求
+    if (!isEditable && !myusername.isEmpty()) {
+        // 收集所有字段的值
+        QString password;
+        QString number = ui->numberLabel->text();
+        QString school = ui->schoolLabel->text();
+        QString phone = ui->phoneLabel->text();
+
+        // 获取密码（可能是新输入的或原有的）
+        QLineEdit* passwordEdit = findChild<QLineEdit*>("passwordLineEdit");
+        if (passwordEdit && !passwordEdit->text().isEmpty()) {
+            password = passwordEdit->text();
+        } else {
+            password = "defaultPassword"; // 这里应该从服务器获取真实密码或保持原密码
+            // 实际应用中应该避免硬编码密码，这里需要改进
+        }
+
+        // 构建用户信息JSON对象
+        QJsonObject userInfo;
+        userInfo["password"] = password;
+        userInfo["number"] = number;
+        userInfo["school"] = school;
+        userInfo["phone"] = phone;
+
+        // 发送更新请求
+        client.updateUserInfo(myusername, userInfo);
+
+        // 显示正在更新提示
+        QMessageBox::information(this, "提示", "正在更新用户信息...");
+    }
 }
 
 //弃置的函数
 void MainWindow::on_checkloveButton_clicked(){}
 
+//获取收藏的按钮
 void MainWindow::on_pushButton_clicked()
 {
     if (!isFavoritesView) {
-        QMessageBox::information(this, "成功", "主页已更新为收藏");
+        QMessageBox::information(this, "成功", "我的收藏已更新");
         client.requestFavorites(myusername);
-        ui->pushButton->setText("查看主页");
+        ui->pushButton->setText("刷新收藏");
         isFavoritesView = true;
     } else {
-        QMessageBox::information(this, "成功", "主页已更新为全部帖子");
-        loadAllPosts();
-        ui->pushButton->setText("查看收藏");
-        isFavoritesView = false;
+        QMessageBox::information(this, "成功", "我的收藏刷新成功");
+        client.requestFavorites(myusername);
+        ui->pushButton->setText("刷新收藏");
+        isFavoritesView = true;
     }
+}
+
+//搜索按钮
+void MainWindow::on_pushButton_2_clicked()
+{
+    QString keyword = ui->searchLineEdit->text();
+    if (!client.isConnected()) {
+        if (!client.connectToServer(qApp->property("IP").toString(), 1234)) {
+            QMessageBox::critical(this, "网络错误", "无法连接到服务器，请检查网络设置");
+            return;
+        }
+    }
+
+    QJsonObject requestObj;
+    requestObj["type"] = "SEARCH";
+    requestObj["keyword"] = keyword;
+    QJsonDocument doc(requestObj);
+    QByteArray request = doc.toJson(QJsonDocument::Compact);
+    client.sendRequest(request);
+}
+
+//主页刷新按钮
+void MainWindow::on_pushButton_3_clicked()
+{
+    QMessageBox::information(this, "提示", "刷新成功...");
+    loadAllPosts();
 }
 

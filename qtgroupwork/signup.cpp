@@ -33,21 +33,26 @@ void SignUp::on_signUpButton_clicked()
         }
     }
 
-        client.sendSignUpRequest(username, password);
-        connect(&client, &Client::dataReceived, [this,username](const QByteArray& data) {
-            QString response = QString(data);
-            if (response == "SignUpSuccess") {
-                qDebug() << "insert into success";
-                QMessageBox::information(this, "注册认证", "插入成功！");
-                MainWindow *w = new MainWindow;
-                w->setUserName(username);
-                w->show();
-                this->close();
-            } else {
-                qDebug() << "insert into error";
-                QMessageBox::information(this, "注册认证", "插入失败！");
-            }
-        });
+    // 创建包含默认值的用户信息
+    QJsonObject userInfo;
+    userInfo["password"] = password;
+    userInfo["number"] = "";
+    userInfo["school"] = "";
+    userInfo["phone"] = "";
 
+    // 发送注册请求
+    client.sendSignUpRequest(username, QJsonDocument(userInfo).toJson());
+
+    connect(&client, &Client::dataReceived, [this,username](const QByteArray& data) {
+        QString response = QString(data);
+        if (response == "SignUpSuccess") {
+            MainWindow *w = new MainWindow;
+            w->setUserName(username);
+            w->show();
+            this->close();
+        } else {
+            QMessageBox::information(this, "注册认证", "注册失败！");
+        }
+    });
 }
 

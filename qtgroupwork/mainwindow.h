@@ -34,9 +34,12 @@ private slots:
 
     void on_addPostButton_clicked();
     void addPost(const QString &content, const QString &fileName);
+    void addPostToFavorites(const QString &content, const QString &fileName);
     void handlePostsReceived(const QList<Post>& posts);
+    void handleFavoritesReceived(const QList<Post>& posts);
     void handleDataReceived(const QByteArray& data);
     void handleSocketError(QAbstractSocket::SocketError error);
+    void handleUserInfoResponse(const QByteArray& data);
 
     void on_selfcenterButton_clicked();
 
@@ -48,12 +51,17 @@ private slots:
 
     void on_checkloveButton_clicked();
 
+    void on_pushButton_2_clicked();
+
+    void on_pushButton_3_clicked();
+
 private:
     Ui::MainWindow *ui;
     void setIcon(int a, QPushButton* button, const QString& filename); // 为按钮设置图标
     QMap<QString, QLabel*> originalWidgets;       // 存储原始Label指针（field名→Label）
     QMap<QString, QSizePolicy> originalSizePolicies; // 存储原始尺寸策略
     QMap<QString, QSize> originalSizeHints;        // 存储原始大小提示
+    QVBoxLayout *favoritesLayout;
 
     void loadAllPosts();
     void handleConnectionError();

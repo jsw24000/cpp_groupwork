@@ -1,14 +1,15 @@
 #include "reply.h"
 #include "ui_reply.h"
+#include <QMessageBox>
 
-#include <QDir>
-
-Reply::Reply(const QString fileName, QWidget *parent)
+Reply::Reply(const QString fileName, Client* client, QWidget *parent)
     : QDialog(parent)
-    , my_fileName(fileName)
     , ui(new Ui::Reply)
+    , my_fileName(fileName)
+    , m_client(client)
 {
     ui->setupUi(this);
+    setWindowTitle("发表回复");
 }
 
 Reply::~Reply()
@@ -16,24 +17,9 @@ Reply::~Reply()
     delete ui;
 }
 
-void Reply::on_buttonBox_accepted()
+QString Reply::getCommentText() const
 {
-    // 检查并创建目录
-    QDir dir("src/reply");
-    if (!dir.exists()) {
-        if (!dir.mkpath(".")) {
-            return;
-        }
-    }
-
-    QString filePath = "src/reply/" + my_fileName + "_reply";
-    QFile file(filePath);
-    if (file.open(QIODevice::Append | QIODevice::Text)) {
-        QTextStream out(&file);
-        QString replyText = ui->textEdit->toPlainText();
-        out << replyText << "\n---END_OF_REPLY---\n";
-        file.close();
-        accept();
-    }
+    return ui->textEdit->toPlainText();
 }
 
+void Reply::on_buttonBox_accepted(){}

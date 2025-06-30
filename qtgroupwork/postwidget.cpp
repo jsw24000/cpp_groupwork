@@ -33,9 +33,14 @@ PostWidget::~PostWidget()
 
 void PostWidget::on_commentButton_clicked()
 {
-    Comment *comment = new Comment(my_filename);
-    comment->show();
-    comment->loadReplies();
+    if (client_ptr != nullptr) {
+        QString temp = ui->textEdit->toPlainText();
+        Comment *comment = new Comment(temp, my_filename, client_ptr);
+        comment->myusername = myusername;
+        comment->show();
+    } else {
+        QMessageBox::warning(this, "错误", "无法连接到服务器");
+    }
 }
 
 

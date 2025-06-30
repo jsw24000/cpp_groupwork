@@ -17,6 +17,10 @@ public:
     }
     bool connectToServer(const QString &host, quint16 port);
     void sendRequest(const QByteArray &request);
+    void requestComments(const QString& filename);
+    void postComment(const QString& filename, const QString& username, const QString& content);
+    void requestUserInfo(const QString& username);
+    void updateUserInfo(const QString& username, const QJsonObject& userInfo);
     void requestAllPosts();
     void requestFavorites(const QString& username);
     void sendPost(const QString& content);
@@ -27,6 +31,7 @@ public:
 signals:
     void dataReceived(const QByteArray &data);
     void postsReceived(const QList<Post>& posts);
+    void favoritesReceived(const QList<Post>& posts);
     void errorOccurred(QAbstractSocket::SocketError socketError);
 
 private slots:
